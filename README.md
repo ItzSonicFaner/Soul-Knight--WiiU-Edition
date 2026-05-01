@@ -1,2 +1,2 @@
-<img src="Assets/Sprites/biaoti 02.png">
-<h2>WiiU EDITION</h2>
+<img src="Assets/Sprites/biaoti02.png">
+<h2 align='center'>WiiU EDITION</h2>
