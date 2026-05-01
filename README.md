@@ -13,3 +13,5 @@
 “In a time of gun and sword, the magical stone that maintains the balance of the world is stolen by high-tech aliens. The world is hanging on a thin thread. It all depends on you retrieving the magical stone…”
 We honestly can’t keep making it all up. Let’s just shoot some alien minions!
 This is the shooter game that features extremely easy and intuitive control. Its super smooth and enjoyable gameplay, mixed with rogue-like elements, will get you hooked from the very first run!<p>
+
+<p>You can download it from: https://itch.io/game/edit/4532797</p>
