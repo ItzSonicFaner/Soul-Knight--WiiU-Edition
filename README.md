@@ -14,4 +14,4 @@
 We honestly can’t keep making it all up. Let’s just shoot some alien minions!
 This is the shooter game that features extremely easy and intuitive control. Its super smooth and enjoyable gameplay, mixed with rogue-like elements, will get you hooked from the very first run!<p>
 
-<p>You can download it from: https://itch.io/game/edit/4532797</p>
+<p>You can download it from: https://vlad-firesoft.itch.io/soul-knight-wiiu-edition</p>
