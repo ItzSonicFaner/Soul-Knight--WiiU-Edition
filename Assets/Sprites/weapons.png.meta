@@ -1,12 +1,13 @@
 fileFormatVersion: 2
 guid: 41592de0c3bfda84088735f9517b7305
-timeCreated: 1777479401
+timeCreated: 1781532427
 licenseType: Free
 TextureImporter:
   fileIDToRecycleName:
     21300000: Weapon_0
     21300002: Weapon_1
     21300004: Weapon_2
+    21300006: Shield_0
   serializedVersion: 4
   mipmaps:
     mipMapMode: 0
@@ -100,7 +101,7 @@ TextureImporter:
         width: 15
         height: 9
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -113,6 +114,20 @@ TextureImporter:
         y: 169
         width: 19
         height: 11
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+    - serializedVersion: 2
+      name: Shield_0
+      rect:
+        serializedVersion: 2
+        x: 84
+        y: 58
+        width: 17
+        height: 17
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

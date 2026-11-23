@@ -15,42 +15,23 @@ public class Player : MonoBehaviour
     [SerializeField] private int _mana;
     [SerializeField] private float _speed;
     [SerializeField] private float _enemiesRange;
+    [SerializeField] private float _skillReload;
     [SerializeField] private float _armorRegenerationTime;
     [SerializeField] private float _armorMaxRegenerationTime;
     [SerializeField] private LayerMask _enemiesLayer;
+    [SerializeField] private Character _character;
 
     [Header("Movement")]
     [SerializeField] private Transform _camera;
     [SerializeField] private float _cameraFollowSpeed;
+    private GameObject _secondWeapon;
     private Vector2 _input;
     private int _lastMoveDirection;
     private float _horizontal;
     private float _vertical;
     private bool _flipLocked;
     private bool _flipped;
-
-    [Header("Weapon")]
-    [SerializeField] private GameObject _weapon;
-    [SerializeField] private AudioSource _shootSound;
-    [SerializeField] private int _manaDecreaseAmount;
-    [SerializeField] private float _maxReloadTime;
-    [SerializeField] private float _reloadTime;
-    [SerializeField] private float _idleShootAngle;
-
-    [Header("Bullet")]
-    [SerializeField] private GameObject _bulletPrefab;
-    [SerializeField] private Transform _bulletSpawnPoint;
-    [SerializeField] private int _bulletDamage;
-    [SerializeField] private float _bulletSpeed;
-    [SerializeField] private float _bulletLifetime;
-
-    [Header("UI")]
-    [SerializeField] private Image[] _healthFill;
-    [SerializeField] private Image[] _armorFill;
-    [SerializeField] private Image[] _manaFill;
-    [SerializeField] private Text[] _healthText;
-    [SerializeField] private Text[] _armorText;
-    [SerializeField] private Text[] _manaText;
+    private bool _canAttack;
 
     [Header("Enemy")]
     private Enemy _enemy;
@@ -58,26 +39,118 @@ public class Player : MonoBehaviour
     [Header("Components")]
     private Rigidbody2D _rigidbody;
     private Animator _animator;
+    private Weapon _currentWeapon;
+    private Characters _characters;
 
     private void Awake()
     {
         _rigidbody = GetComponent<Rigidbody2D>();
         _animator = GetComponent<Animator>();
-
-        _health = _maxHealth;
-        _armor = _maxArmor;
-        _mana = _maxMana;
-
-        UpdateHealth();
-        UpdateArmor();
-        UpdateMana();
+        _canAttack = true;
 
         _camera.transform.position = new Vector3(transform.position.x, transform.position.y + 0.5f, -10.0f);
     }
 
     private void Start()
     {
-        UnityEngine.WiiU.AudioSourceOutput.Assign(_shootSound, AudioOutput.GamePad);
+        Initialize();
+    }
+
+    private void Initialize()
+    {
+        _characters = Characters.Instance;
+
+        foreach (CharacterData _someCharacter in _characters.GetCharacters())
+        {
+            if (_someCharacter.GetCharacter().GetId() == _characters._characterId)
+            {
+                _character = _someCharacter.GetCharacter();
+                break;
+            }
+        }
+
+        CharacterUpgrade _characterUpgrade = _character.GetCharacterUpgrades()[_characters._characterUpgradeId];
+        _animator.runtimeAnimatorController = _character.GetAnimation();
+        _characters.SetData(this, _characterUpgrade.GetHealth(), _characterUpgrade.GetArmor(), _characterUpgrade.GetMana());
+
+        foreach (GameObject _otherWeapon in _characters.GetWeapons())
+        {
+            if (_otherWeapon.GetComponent<Weapon>().GetId() == _characters._weaponId)
+            {
+                GameObject _newWeapon = Instantiate(_otherWeapon, transform.Find("Weapon"));
+                _currentWeapon = _newWeapon.GetComponent<Weapon>();
+                break;
+            }
+        }
+    }
+
+    public void ChangeWeapon(int _newWeaponId)
+    {
+        if (_currentWeapon.GetId() == _newWeaponId)
+            return;
+        StartCoroutine(StopSkill(true, _character.GetSkillName()));
+
+        foreach (Transform _previousWeapon in transform.Find("Weapon"))
+            Destroy(_previousWeapon.gameObject);
+        _currentWeapon = null;
+        _characters.ChangeWeapon(_newWeaponId);
+
+        foreach (GameObject _otherWeapon in _characters.GetWeapons())
+        {
+            if (_otherWeapon.GetComponent<Weapon>().GetId() == _characters._weaponId)
+            {
+                GameObject _newWeapon = Instantiate(_otherWeapon, transform.Find("Weapon"));
+                _currentWeapon = _newWeapon.GetComponent<Weapon>();
+                break;
+            }
+        }
+    }
+
+    public void Ability(string _name)
+    {
+        GameObject _skillEffect = null;
+        if (_name.ToLower() == "dual wield")
+        {
+            GameObject _otherWeapon = transform.Find("OtherWeapon").gameObject;
+            GameObject _mainWeapon = transform.Find("Weapon").GetChild(0).gameObject;
+            Characters _characters = Characters.Instance;
+
+            foreach (GameObject _weapon in _characters.GetWeapons())
+            {
+                if (_weapon.GetComponent<Weapon>().GetId() == _mainWeapon.GetComponent<Weapon>().GetId())
+                {
+                    GameObject _newOtherWeapon = Instantiate(_weapon, _otherWeapon.transform);
+                    _secondWeapon = _newOtherWeapon;
+                    _secondWeapon.GetComponent<Weapon>().SetMaxReloadTime(0.05f);
+                    _secondWeapon.GetComponent<SpriteRenderer>().sortingOrder = 0;
+                    break;
+                }
+            }
+
+            _skillEffect = Instantiate(_character.GetSkillEffect(), transform.Find("SkillEffect"));
+            if (_character.GetSkillSound())
+            {
+                _skillEffect.AddComponent<AudioSource>().clip = _character.GetSkillSound();
+                _skillEffect.GetComponent<AudioSource>().Play();
+            }
+        }
+        StartCoroutine(StopSkill(false , _name, _skillEffect));
+    }
+
+    private IEnumerator StopSkill(bool _instant, string _skillName, GameObject _skillEffect = null)
+    {
+        if (!_instant)
+            yield return new WaitForSeconds(_characters.GetCharacters()[_characters._characterId].GetCharacter().GetCharacterUpgrades()[_characters._characterUpgradeId].GetSkillDuration());
+        if (_skillName.ToLower() == "dual wield")
+        {
+            _skillReload = _characters.GetCharacters()[_characters._characterId].GetCharacter().GetCharacterUpgrades()[_characters._characterUpgradeId].GetSkillReload();
+            Destroy(_secondWeapon);
+
+            if (_skillEffect)
+                Destroy(_skillEffect);
+            else if (!_skillEffect && transform.Find("SkillEffect").childCount > 0)
+                Destroy(transform.Find("SkillEffect").GetChild(0).gameObject);
+        }
     }
 
     private void Update()
@@ -112,7 +185,10 @@ public class Player : MonoBehaviour
             _input.y = Input.GetAxisRaw("Vertical");
 
             if (Input.GetMouseButton(0))
-                Shoot();
+                StartCoroutine(Shoot());
+
+            if (Input.GetKeyDown(KeyCode.Q) && _skillReload <= 0)
+                Ability(_character.GetSkillName());
         }
         else
         {
@@ -120,12 +196,15 @@ public class Player : MonoBehaviour
             _input.x = _gamePad.lStick.x;
             _input.y = _gamePad.lStick.y;
 
-            if(_gamePad.IsPressed(GamePadButton.A))
-                Shoot();
+            if (_gamePad.IsPressed(GamePadButton.A) || _gamePad.IsPressed(GamePadButton.B))
+                StartCoroutine(Shoot());
+
+            if ((_gamePad.IsPressed(GamePadButton.Y) || _gamePad.IsPressed(GamePadButton.X)) && _skillReload <= 0)
+                Ability(_character.GetSkillName());
         }
 
-        if (_reloadTime > 0)
-            _reloadTime -= Time.deltaTime;
+        if (_skillReload > 0)
+            _skillReload -= Time.deltaTime;
 
         if (_armor < _maxArmor)
         {
@@ -138,8 +217,6 @@ public class Player : MonoBehaviour
 
                 if (_armor < _maxArmor)
                     _armorRegenerationTime = 1.5f;
-
-                UpdateArmor();
             }
         }
         else if (_armor == _maxArmor)
@@ -164,14 +241,6 @@ public class Player : MonoBehaviour
 
         if (_enemy != null)
         {
-            Vector2 _direction = (_enemy.transform.position - _weapon.transform.position).normalized;
-
-            float _x = _flipped ? _direction.x * -1 : _direction.x;
-            float _y = _flipped ? _direction.y * -1 : _direction.y;
-            float _angle = Mathf.Atan2(_y, _x) * Mathf.Rad2Deg;
-
-            _weapon.transform.rotation = Quaternion.Euler(0, 0, _angle);
-
             float _directionToEnemyX = _enemy.transform.position.x - transform.position.x;
             bool _shouldFlip = (!_flipped && _directionToEnemyX < 0) || (_flipped && _directionToEnemyX > 0);
 
@@ -207,7 +276,12 @@ public class Player : MonoBehaviour
             float _y = _flipped ? _input.y * -1 : _input.y;
 
             if (_enemy == null)
-                _weapon.transform.rotation = Quaternion.Euler(0.0f, 0.0f, Mathf.Atan2(_y, _x) * Mathf.Rad2Deg);
+            {
+                _currentWeapon.transform.parent.rotation = Quaternion.Euler(0.0f, 0.0f, Mathf.Atan2(_y, _x) * Mathf.Rad2Deg);
+
+                if (_secondWeapon)
+                    _secondWeapon.transform.parent.rotation = Quaternion.Euler(0.0f, 0.0f, Mathf.Atan2(_y, _x) * Mathf.Rad2Deg);
+            }
         }
         else
             _animator.SetBool("isWalking", false);
@@ -221,7 +295,12 @@ public class Player : MonoBehaviour
         _rigidbody.velocity = _input * _speed;
     }
 
-    private void Flip()
+    public void SetCanAttack(bool _value)
+    {
+        _canAttack = _value;
+    }
+
+    public void Flip()
     {
         Vector3 _newScale = transform.localScale;
         _newScale.x *= -1;
@@ -229,15 +308,17 @@ public class Player : MonoBehaviour
         _flipped = !_flipped;
     }
 
-    public void Shoot()
+    public IEnumerator Shoot(Weapon _weaponToShoot = null)
     {
-        if (_reloadTime > 0 || _mana <= 0)
-            return;
+        if (!_weaponToShoot)
+            _weaponToShoot = _currentWeapon;
 
-        _animator.SetTrigger("Attack");
+        if (_weaponToShoot.GetReloadTime() > 0 || _mana <= 0 || (_canAttack == false && (_weaponToShoot && _secondWeapon && _weaponToShoot != _secondWeapon.GetComponent<Weapon>())))
+            yield break;
 
-        GameObject _bullet = Instantiate(_bulletPrefab);
-        Bullet _bulletComponent = _bullet.GetComponent<Bullet>();
+        _canAttack = false;
+        if (_weaponToShoot.GetComponent<Animator>())
+            _weaponToShoot.GetComponent<Animator>().SetTrigger("Attack");
 
         if (!Application.isEditor)
         {
@@ -245,54 +326,29 @@ public class Player : MonoBehaviour
             GamePad.access.ControlMotor(_pattern, _pattern.Length * 8);
         }
 
-        _shootSound.Play();
+        _weaponToShoot.GetShootSound().Play();
 
-        if (_manaDecreaseAmount > 0)
+        if (_weaponToShoot.GetManaDecreaseAmount() > 0)
         {
-            _mana -= _manaDecreaseAmount;
+            _mana -= _weaponToShoot.GetManaDecreaseAmount();
             _mana = Mathf.Clamp(_mana, 0, _maxMana);
-            UpdateMana();
         }
 
-        _bullet.transform.position = _bulletSpawnPoint.position;
-        _bulletComponent._bulletSpeed = _bulletSpeed;
-        _bulletComponent._bulletLifetime = _bulletLifetime;
-        _bulletComponent._idleShootAngle = _idleShootAngle;
-        _bulletComponent._bulletDamage = _bulletDamage;
-        _bulletComponent._shooter = Bullet.Shooter.Player;
-
-        if (_input.x == 0 && _input.y == 0)
-            _bulletComponent._standing = true;
-
-        _bulletComponent._direction = _flipped ? -_weapon.transform.right : _weapon.transform.right;
-        _reloadTime = _maxReloadTime;
+        _weaponToShoot.CreateBullet(_flipped, _input);
+        _weaponToShoot.SetReloadTime(_weaponToShoot.GetMaxReloadTime());
         _armorRegenerationTime = _armorMaxRegenerationTime;
-    }
 
-    private void UpdateHealth()
-    {
-        for (int _i = 0; _i < _healthFill.Length; _i++)
+        if (_secondWeapon && (_weaponToShoot && _secondWeapon && _weaponToShoot != _secondWeapon.GetComponent<Weapon>()))
         {
-            _healthFill[_i].fillAmount = (float)_health / (float)_maxHealth;
-            _healthText[_i].text = _health + "/" + _maxHealth;
+            yield return new WaitForSeconds(_currentWeapon.GetMaxReloadTime());
+            if (_secondWeapon)
+                StartCoroutine(Shoot(_secondWeapon.GetComponent<Weapon>()));
         }
-    }
-
-    private void UpdateArmor()
-    {
-        for (int _i = 0; _i < _armorFill.Length; _i++)
+        else
         {
-            _armorFill[_i].fillAmount = (float)_armor / (float)_maxArmor;
-            _armorText[_i].text = _armor + "/" + _maxArmor;
-        }
-    }
-
-    private void UpdateMana()
-    {
-        for (int _i = 0; _i < _manaFill.Length; _i++)
-        {
-            _manaFill[_i].fillAmount = (float)_mana / (float)_maxMana;
-            _manaText[_i].text = _mana + "/" + _maxMana;
+            if (_weaponToShoot && _secondWeapon && _weaponToShoot == _secondWeapon.GetComponent<Weapon>())
+                yield return new WaitForSeconds(_currentWeapon.GetMaxReloadTime());
+            _canAttack = true;
         }
     }
 
@@ -308,16 +364,119 @@ public class Player : MonoBehaviour
         {
             _health -= _value;
             _health = Mathf.Clamp(_health, 0, _maxHealth);
-            UpdateHealth();
         }
         else if (_armor > 0)
         {
             _armor -= _value;
             _armor = Mathf.Clamp(_armor, 0, _maxArmor);
-            UpdateArmor();
         }
 
         _armorRegenerationTime = _armorMaxRegenerationTime;
+    }
+
+    public void SetMaxHealth(int _value)
+    {
+        _maxHealth = _value;
+    }
+
+    public void SetMaxArmor(int _value)
+    {
+        _maxArmor = _value;
+    }
+
+    public void SetMaxMana(int _value)
+    {
+        _maxMana = _value;
+    }
+
+    public void SetHealth(int _value)
+    {
+        _health = _value;
+    }
+
+    public void SetArmor(int _value)
+    {
+        _armor = _value;
+    }
+
+    public void SetMana(int _value)
+    {
+        _mana = _value;
+    }
+
+    public void AddHealth(int _value)
+    {
+        _health += _value;
+    }
+
+    public void AddArmor(int _value)
+    {
+        _armor += _value;
+    }
+
+    public void AddMana(int _value)
+    {
+        _mana += _value;
+    }
+
+    public void AddMaxHealth(int _value)
+    {
+        _maxHealth += _value;
+    }
+
+    public void AddMaxArmor(int _value)
+    {
+        _maxArmor += _value;
+    }
+
+    public void AddMaxMana(int _value)
+    {
+        _maxMana += _value;
+    }
+
+    public int GetMaxHealth()
+    {
+        return _maxHealth;
+    }
+
+    public int GetHealth()
+    {
+        return _health;
+    }
+
+    public int GetMaxArmor()
+    {
+        return _maxArmor;
+    }
+
+    public int GetArmor()
+    {
+        return _armor;
+    }
+
+    public int GetMaxMana()
+    {
+        return _maxMana;
+    }
+
+    public int GetMana()
+    {
+        return _mana;
+    }
+
+    public void SetIsFlipLocked(bool _value)
+    {
+        _flipLocked = _value;
+    }
+
+    public Weapon GetCurrentWeapon()
+    {
+        return _currentWeapon;
+    }
+
+    public Vector2 GetInput()
+    {
+        return _input;
     }
 
     public Transform GetCamera()
@@ -325,8 +484,18 @@ public class Player : MonoBehaviour
         return _camera;
     }
 
-    public AudioSource GetShootSound()
+    public Enemy GetEnemy()
     {
-        return _shootSound;
+        return _enemy;
+    }
+
+    public bool GetIsFlipped()
+    {
+        return _flipped;
+    }
+
+    public bool GetIsFlipLocked()
+    {
+        return _flipLocked;
     }
 }

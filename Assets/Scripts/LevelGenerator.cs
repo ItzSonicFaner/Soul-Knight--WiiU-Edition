@@ -8,6 +8,9 @@ public class LevelGenerator : MonoBehaviour
     [Header("Rooms")]
     [SerializeField] private Room[] _rooms;
     [SerializeField] private GameObject _portal;
+    //private List<string> _letters = new List<string>() { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z" };
+    //private List<string> _numbers = new List<string>() { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+    //private List<string> _types = new List<string>() { "!", "#", "$", "?" };
     //[SerializeField] private bool _random;
 
     [Header("Patterns")]
@@ -20,56 +23,54 @@ public class LevelGenerator : MonoBehaviour
     {
         int _patternId = UnityEngine.Random.Range(0, _patterns.Length);
 
-        for (int _i = 0; _i < _patterns[_patternId].GetLines().Length; _i++)
+        for (int _i = 0; _i < _patterns[_patternId]._lines.Length; _i++)
         {
-            for (int _j = 0; _j < _patterns[_patternId].GetLines()[_i].GetLines().Length; _j++)
-            {
-                Line _line = _patterns[_patternId].GetLines()[_i].GetLines()[_j];
+            string _letterId = _patterns[_patternId]._lines[_i]._letterId;
+            string[] _letterIds = _letterId.Split('|');
 
+            string _numberId = _patterns[_patternId]._lines[_i]._numberId;
+            string[] _numberIds = _numberId.Split('|');
+
+            string _roomType = _patterns[_patternId]._lines[_i]._roomType;
+            string[] _roomTypes = _roomType.Split('|');
+
+            for (int _j = 0; _j < _letterIds.Length; _j++ )
+            {
                 for (int _a = 0; _a < _rooms.Length; _a++)
                 {
-                    if (_line.GetValue().Length > 0)
+                    if (_letterIds[_j] == _rooms[_a].GetId())
                     {
-                        if (_line.GetValue()[0] == _rooms[_a].GetId()[0])
+                        GameObject _room = Instantiate(_rooms[_a].GetRooms()[int.Parse(_numberIds[_j])]);
+                        RoomType _convertedRoomType = RoomType.Fight;
+
+                        switch(_roomTypes[_j])
                         {
-                            GameObject _room = null;
+                            case "!":
+                                _convertedRoomType = RoomType.Spawn;
+                                break;
+                            case "#":
+                                _convertedRoomType = RoomType.Fight;
+                                break;
+                            case "?":
+                                _convertedRoomType = RoomType.End;
+                                break;
+                        }
 
-                            if (_line.GetValue().Length > 1)
-                            {
-                                if (_line.GetValue().Length == 2)
-                                    _room = Instantiate(_rooms[_a].GetRooms()[int.Parse(_line.GetValue()[1].ToString())]);
-                                else if (_line.GetValue().Length > 2)
-                                {
-                                    string _resultedNumber = "";
+                        Vector2 _roomPosition = _room.transform.position;
+                        _roomPosition.x += 35 * _j;
+                        _roomPosition.y -= 35 * _i;
+                        _room.transform.position = _roomPosition;
+                        _room.GetComponent<RoomPrefab>()._roomType = _convertedRoomType;
 
-                                    for (int _b = 1; _b < _line.GetValue().Length; _b++)
-                                    {
-                                        _resultedNumber += _line.GetValue()[1];
-
-                                        if (_b + 1 == _line.GetValue().Length)
-                                            _room = Instantiate(_rooms[_a].GetRooms()[int.Parse(_resultedNumber)]);
-                                    }
-                                }
-                            }
-                            else if (_line.GetValue().Length == 1)
-                                _room = Instantiate(_rooms[_a].GetRooms()[0]);
-
-                            Vector2 _roomPosition = _room.transform.position;
-                            _roomPosition.x += 35 * _j;
-                            _roomPosition.y -= 35 * _i;
-                            _room.transform.position = _roomPosition;
-                            _room.GetComponent<RoomPrefab>()._roomType = _line.GetRoomType();
-
-                            if (_line.GetRoomType() == RoomType.Spawn)
-                                _room.GetComponent<RoomPrefab>().SetSpawnpoint(_roomPosition);
-                            else if (_line.GetRoomType() == RoomType.Fight)
-                                _room.GetComponent<RoomPrefab>().Spawn();
-                            else if (_line.GetRoomType() == RoomType.End)
-                            {
-                                GameObject _newPortal = Instantiate(_portal);
-                                _newPortal.transform.SetParent(_room.transform);
-                                _newPortal.transform.localPosition = new Vector3(0.0f, 0.5f, 0.0f);
-                            }
+                        if (_convertedRoomType == RoomType.Spawn)
+                            _room.GetComponent<RoomPrefab>().SetSpawnpoint(_roomPosition);
+                        else if (_convertedRoomType == RoomType.Fight)
+                            _room.GetComponent<RoomPrefab>().Spawn();
+                        else if (_convertedRoomType == RoomType.End)
+                        {
+                            GameObject _newPortal = Instantiate(_portal);
+                            _newPortal.transform.SetParent(_room.transform);
+                            _newPortal.transform.localPosition = new Vector3(0.0f, 0.5f, 0.0f);
                         }
                     }
                 }
@@ -115,60 +116,21 @@ public class Room
 public class Pattern
 {
     [Header("Lines")]
-    [SerializeField] private HorizontalLine[] _lines;
-
-    public HorizontalLine[] GetLines()
-    {
-        return _lines;
-    }
-}
-
-[Serializable]
-public class HorizontalLine
-{
-    [Header("Lines")]
-    [SerializeField] private string _name;
-    [SerializeField] private Line[] _lines;
-
-    public string GetName()
-    {
-        return _name;
-    }
-
-    public Line[] GetLines()
-    {
-        return _lines;
-    }
+    public Line[] _lines;
 }
 
 [Serializable]
 public class Line
 {
     [Header("Line")]
-    [SerializeField] private string _name;
-    [SerializeField] private string _value;
-    [SerializeField] private RoomType _roomType;
-
-    public string GetName()
-    {
-        return _name;
-    }
-
-    public string GetValue()
-    {
-        return _value;
-    }
-
-    public RoomType GetRoomType()
-    {
-        return _roomType;
-    }
+    public string _letterId;
+    public string _numberId;
+    public string _roomType;
 }
 
 public enum RoomType
 {
-    Fight,
     Spawn,
-    Chest,
+    Fight,
     End
 }

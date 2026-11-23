@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42baf65ed26a16347883917643f97482, type: 3}
+  m_Name: Knight
+  m_EditorClassIdentifier: 
+  _name: Knight
+  _id: 0
+  _animation: {fileID: 9100000, guid: 57e18ee2193e4b74aaef73149db5cebe, type: 2}
+  _characterUpgrades:
+  - _health: 6
+    _armor: 5
+    _mana: 180
+    _criticalChance: 0
+    _weaponId: 0
+    _skillReload: 10
+    _skillDuration: 5
+    _cost: 500
+  - _health: 7
+    _armor: 5
+    _mana: 180
+    _criticalChance: 0
+    _weaponId: 0
+    _skillReload: 10
+    _skillDuration: 5
+    _cost: 1000
+  - _health: 7
+    _armor: 6
+    _mana: 180
+    _criticalChance: 0
+    _weaponId: 0
+    _skillReload: 8
+    _skillDuration: 5
+    _cost: 1500
+  - _health: 7
+    _armor: 6
+    _mana: 200
+    _criticalChance: 0
+    _weaponId: 0
+    _skillReload: 8
+    _skillDuration: 5
+    _cost: 0
+  _skillName: DUAL WIELD
+  _skillDescription: USE TWO GUNS FOR A SHORT DURATION
+  _skillSound: {fileID: 8300000, guid: 2cf70c546e457394d82e04f202fba7ee, type: 3}
+  _skillEffect: {fileID: 1658826825732708, guid: 6a6df52c1361e6949a372bad4b372ed4,
+    type: 2}
+  _skillIcon: {fileID: 21300034, guid: 9d6ad0c6fac629344a41669feee31c32, type: 3}

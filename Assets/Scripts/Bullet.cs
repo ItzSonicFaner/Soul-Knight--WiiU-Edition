@@ -68,6 +68,15 @@ public class Bullet : MonoBehaviour
         {
             _collision.gameObject.GetComponent<Player>().TakeDamage(_bulletDamage);
             Destroy(gameObject);
+
+            foreach (UIManager _ui in FindObjectsOfType<UIManager>())
+            {
+                if (_ui.GetUIType() != UIManager.UIType.Gems)
+                {
+                    _ui.SetPlayer(_collision.gameObject.GetComponent<Player>());
+                    _ui.LoadValues();
+                }
+            }
         }
     }
 }
